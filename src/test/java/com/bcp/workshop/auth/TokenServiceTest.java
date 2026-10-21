@@ -24,12 +24,13 @@ class TokenServiceTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final Instant instant = Instant.parse("2026-10-19T12:00:00Z");
     private final UserRecord user = new UserRecord(1, DatabaseFixture.STUDENT, "Test", "STUDENT");
+        private final String client = " test-client ";
 
     @Test
     void signsClaimsWithExactLifetimeAndIndependentVerifier() throws Exception {
         var keys = keys(2048);
         var service = new TokenService(keys.getPrivate(), Clock.fixed(instant, ZoneOffset.UTC), "test-issuer", "test-audience");
-        String token = service.create(user);
+        String token = service.create(user, client);
         String[] segments = token.split("\\.");
         assertEquals(3, segments.length);
         assertTrue(verifies(token, keys.getPublic()));
@@ -37,16 +38,22 @@ class TokenServiceTest {
         JsonNode claims = decode(segments[1]);
         assertEquals("RS256", header.get("alg").asText());
         assertEquals(user.username(), claims.get("sub").asText());
+        assertEquals(client, claims.get("client").asText());
         assertEquals(user.role(), claims.get("role").asText());
         assertEquals("test-issuer", claims.get("iss").asText());
         assertTrue(claims.get("aud").toString().contains("test-audience"));
+        assertTrue(claims.get("iat").isIntegralNumber());
+        assertTrue(claims.get("exp").isIntegralNumber());
         assertEquals(instant.getEpochSecond(), claims.get("iat").asLong());
-        assertEquals(TokenService.LIFETIME_SECONDS, claims.get("exp").asLong() - claims.get("iat").asLong());
+        long expiresAt = claims.get("exp").asLong();
+        assertEquals(TokenService.LIFETIME_SECONDS, expiresAt - claims.get("iat").asLong());
         assertFalse(claims.has("secret"));
         assertFalse(claims.has("password"));
         assertFalse(claims.has("password_hash"));
         assertTrue(validAt(token, instant, "test-issuer", "test-audience"));
-        assertFalse(validAt(token, instant.plusSeconds(TokenService.LIFETIME_SECONDS), "test-issuer", "test-audience"));
+        assertTrue(validAt(token, Instant.ofEpochSecond(expiresAt - 1), "test-issuer", "test-audience"));
+        assertFalse(validAt(token, Instant.ofEpochSecond(expiresAt), "test-issuer", "test-audience"));
+        assertFalse(validAt(token, Instant.ofEpochSecond(expiresAt + 1), "test-issuer", "test-audience"));
         assertFalse(validAt(token, instant, "wrong", "test-audience"));
         assertFalse(validAt(token, instant, "test-issuer", "wrong"));
         assertFalse(verifies(token, keys(2048).getPublic()));
@@ -63,7 +70,8 @@ class TokenServiceTest {
         Files.writeString(key, "-----BEGIN PRIVATE KEY-----\n"
                 + Base64.getEncoder().encodeToString(keys(2048).getPrivate().getEncoded())
                 + "\n-----END PRIVATE KEY-----");
-        assertEquals(3, new TokenService(key.toString(), "test-issuer", "test-audience").create(user).split("\\.").length);
+        assertEquals(3, new TokenService(key.toString(), "test-issuer", "test-audience")
+                .create(user, client).split("\\.").length);
         assertThrows(IllegalStateException.class,
                 () -> new TokenService(directory.resolve("missing").toString(), "test-issuer", "test-audience"));
         Files.writeString(key, "invalid-key");

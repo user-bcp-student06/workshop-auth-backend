@@ -17,6 +17,7 @@ class AuthServiceTest {
     private static final UserRecord STORED_USER = new UserRecord(42, "stored-user", "<Stored>", "TRAINER");
     private static final String INPUT_USERNAME = "requested-user";
     private static final String INPUT_PASSWORD = "isolated-test-password";
+    private static final String CLIENT = "test-client";
     private static final String STORED_HASH = "isolated-test-hash";
     private static final String ISSUED_TOKEN = "isolated-test-token";
     private static PrivateKey signingKey;
@@ -102,7 +103,7 @@ class AuthServiceTest {
     @Test
     void serviceReturnsTheCompletePublicLoginWithoutAnHttpResource() {
         Scenario scenario = new Scenario();
-        LoginResponse login = scenario.service.login(INPUT_USERNAME, INPUT_PASSWORD);
+        LoginResponse login = scenario.service.login(INPUT_USERNAME, INPUT_PASSWORD, CLIENT);
         assertEquals(ISSUED_TOKEN, login.token());
         assertEquals(TokenService.LIFETIME_SECONDS, login.expiresIn());
         assertEquals(STORED_USER.username(), login.user().username());
@@ -113,7 +114,7 @@ class AuthServiceTest {
     void serviceRejectsIncorrectCredentialsWithoutIssuingAToken() {
         Scenario scenario = new Scenario();
         scenario.passwordMatches = false;
-        assertNull(scenario.service.login(INPUT_USERNAME, INPUT_PASSWORD));
+        assertNull(scenario.service.login(INPUT_USERNAME, INPUT_PASSWORD, CLIENT));
         assertEquals(0, scenario.emissions);
     }
 
@@ -122,7 +123,7 @@ class AuthServiceTest {
         Scenario scenario = new Scenario();
         scenario.lookupFailure = new CredentialStorageException(new SQLException("isolated-error"));
         assertSame(scenario.lookupFailure, assertThrows(CredentialStorageException.class,
-                () -> scenario.service.login(INPUT_USERNAME, INPUT_PASSWORD)));
+                () -> scenario.service.login(INPUT_USERNAME, INPUT_PASSWORD, CLIENT)));
         assertEquals(0, scenario.emissions);
     }
 
@@ -144,6 +145,7 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest();
         request.username = INPUT_USERNAME;
         request.password = INPUT_PASSWORD;
+        request.client = CLIENT;
         return request;
     }
 
@@ -181,9 +183,10 @@ class AuthServiceTest {
             };
             TokenService tokens = new TokenService(signingKey, Clock.systemUTC(), "test-issuer", "test-audience") {
                 @Override
-                public String create(UserRecord user) {
+                public String create(UserRecord user, String client) {
                     emissions++;
                     assertSame(STORED_USER, user);
+                    assertEquals(CLIENT, client);
                     if (signingFailure != null) {
                         throw signingFailure;
                     }

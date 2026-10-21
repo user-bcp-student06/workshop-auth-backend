@@ -47,10 +47,11 @@ public class TokenService {
         this.audience = requireValue(audience, "JWT audience");
     }
 
-    public String create(UserRecord user) {
+    public String create(UserRecord user, String client) {
         long issuedAt = clock.instant().getEpochSecond();
         return Jwt.issuer(issuer).audience(audience).subject(user.username())
-                .claim("role", user.role()).issuedAt(issuedAt).expiresAt(issuedAt + LIFETIME_SECONDS)
+                .claim("role", user.role()).claim("client", client)
+                .issuedAt(issuedAt).expiresAt(issuedAt + LIFETIME_SECONDS)
                 .jws().algorithm(SignatureAlgorithm.RS256).sign(privateKey);
     }
 

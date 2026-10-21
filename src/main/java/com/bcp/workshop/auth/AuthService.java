@@ -16,12 +16,12 @@ public class AuthService {
         this.tokens = tokens;
     }
 
-    public LoginResponse login(String username, String password) {
+    public LoginResponse login(String username, String password, String client) {
         UserRecord user = authenticate(username, password);
         if (user == null) {
             return null;
         }
-        return LoginResponse.from(user, tokens.create(user), TokenService.LIFETIME_SECONDS);
+        return LoginResponse.from(user, tokens.create(user, client), TokenService.LIFETIME_SECONDS);
     }
 
     public UserRecord authenticate(String username, String password) {

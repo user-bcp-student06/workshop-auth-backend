@@ -36,6 +36,26 @@ class EndpointContractTest {
     }
 
     @Test
+    void rejectsMissingNullEmptyAndWhitespaceClientWithoutIssuingToken() {
+        String base = "{\"username\":\"test-student\",\"password\":\"test-only\"";
+        for (String client : new String[]{"", ",\"client\":null", ",\"client\":\"\"",
+                ",\"client\":\" \\t \""}) {
+            given().contentType("application/json").body(base + client + "}").post(LOGIN).then()
+                    .statusCode(400).body("message", notNullValue()).body("size()", is(1));
+        }
+    }
+
+    @Test
+    void preservesRequestUsernameAndPasswordValidationPrecedenceOverClient() {
+        given().contentType("application/json")
+                .body("{\"username\":\" \",\"password\":\"pass\"}").post(LOGIN).then()
+                .statusCode(400).body("message", is("Username is required"));
+        given().contentType("application/json")
+                .body("{\"username\":\"test-student\",\"password\":\" \",\"client\":\" \"}")
+                .post(LOGIN).then().statusCode(400).body("message", is("Password is required"));
+    }
+
+    @Test
     void rejectsMalformedJson() {
         given().contentType("application/json").body("{").post(LOGIN).then()
                 .statusCode(400).body(is(""));

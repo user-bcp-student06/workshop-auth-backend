@@ -17,6 +17,7 @@ public class AuthResource {
     private static final String REQUEST_REQUIRED = "Request is null";
     private static final String USERNAME_REQUIRED = "Username is required";
     private static final String PASSWORD_REQUIRED = "Password is required";
+    private static final String CLIENT_REQUIRED = "Client is required";
     private static final String INVALID_CREDENTIALS = "Invalid user %s or password";
 
     @Inject
@@ -32,7 +33,7 @@ public class AuthResource {
             if (validationMessage != null) {
                 return reject(Response.Status.BAD_REQUEST, validationMessage);
             }
-            return responseFor(service.login(request.username, request.password), request.username);
+            return responseFor(service.login(request.username, request.password, request.client), request.username);
         } catch (Exception error) {
             return errors.toResponse(error);
         }
@@ -58,6 +59,9 @@ public class AuthResource {
         }
         if (request.password == null || request.password.trim().isEmpty()) {
             return PASSWORD_REQUIRED;
+        }
+        if (request.client == null || request.client.isBlank()) {
+            return CLIENT_REQUIRED;
         }
         return null;
     }

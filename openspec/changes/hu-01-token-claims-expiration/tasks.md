@@ -2,16 +2,18 @@
 
 ## 1. Caracterizar el contrato actual
 
-- [ ] 1.1 Confirmar con `AuthResourceTest` la respuesta exitosa actual (`token`, `expiresIn`, `user`, `debug`), sus campos de usuario y la precedencia de validaciones; ejecutar `mvn -B -ntp -Dtest=AuthResourceTest test` antes de cambiar producción.
-- [ ] 1.2 Confirmar con `TokenServiceTest` RS256, claims existentes, vida exacta de 3600 segundos y rechazo en `exp`; ejecutar `mvn -B -ntp -Dtest=TokenServiceTest test` antes de cambiar producción.
-- [ ] 1.3 Confirmar con `EndpointContractTest`, `EndpointFailureTest` y `AuthResourceTest` las respuestas 400/401/500 y la redacción de logs ya cubiertas; ejecutar las pruebas focalizadas y registrar cualquier hueco antes del cambio.
+- [x] 1.1 Confirmar con `AuthResourceTest` la respuesta exitosa actual (`token`, `expiresIn`, `user`, `debug`), sus campos de usuario y la precedencia de validaciones; ejecutar `mvn -B -ntp -Dtest=AuthResourceTest test` antes de cambiar producción. Resultado: 8 pruebas, 0 fallos/errores/omitidas (`-Dquarkus.http.test-port=0`, JDK 21).
+- [x] 1.2 Confirmar con `TokenServiceTest` RS256, claims existentes, vida exacta de 3600 segundos y rechazo en `exp`; ejecutar `mvn -B -ntp -Dtest=TokenServiceTest test` antes de cambiar producción. Resultado: 2 pruebas, 0 fallos/errores/omitidas (JDK 21).
+- [x] 1.3 Confirmar con `EndpointContractTest`, `EndpointFailureTest` y `AuthResourceTest` las respuestas 400/401/500 y la redacción de logs ya cubiertas; ejecutar las pruebas focalizadas y registrar cualquier hueco antes del cambio. Resultado: `EndpointContractTest` 11/11, `EndpointFailureTest` 6/6 y `AuthResourceTest` 8/8; todas con 0 fallos/errores/omitidas, ejecutadas por clase para evitar colisión de perfiles Quarkus en el puerto 8081.
 
 ## 2. Añadir pruebas para el comportamiento acordado
 
 - [ ] 2.1 Añadir a `TokenServiceTest` casos con reloj fijo para `client`, claims requeridos, claims existentes, RS256 y límites de expiración; verificar que las nuevas aserciones describen la spec y fallan solo donde falta el comportamiento nuevo.
 - [ ] 2.2 Añadir a `EndpointContractTest` casos de `client` omitido, nulo, vacío y solo espacios con HTTP 400 y sin token; reemplazar la expectativa permisiva existente y verificar con `mvn -B -ntp -Dtest=EndpointContractTest test`.
 - [ ] 2.3 Ampliar la prueba de login exitoso para comprobar que el token firmado contiene el `client` enviado y que el cuerpo conserva exactamente su forma pública; verificar con `mvn -B -ntp -Dtest=AuthResourceTest test`.
-- [ ] 2.4 Añadir o completar una prueba de logs para login exitoso y fallido con valores centinela de password, token y secreto; verificar que no aparecen en registros y que el error HTTP 500 sigue siendo genérico.
+- [x] 2.4 Añadir o completar una prueba de logs para login exitoso y fallido con valores centinela de password, token y secreto; verificar que no aparecen en registros y que el error HTTP 500 sigue siendo genérico. Resultado: `AuthResourceTest` 8/8 y `EndpointFailureTest` 6/6; las pruebas observan logs de ambos flujos, el 500 genérico y la ausencia de centinelas.
+
+Nota de entorno para las tareas 1.1–1.3 y 2.4: usar JDK 21, según `docs/TESTING.md`. El JDK predeterminado de esta sesión no es compatible con JaCoCo 0.8.12 (`Unsupported class file major version 69`); además, el puerto de test 8081 estaba ocupado, por lo que las pruebas Quarkus se ejecutaron con `-Dquarkus.http.test-port=0` y por clase. No se alteró la configuración ni se detuvo ningún proceso externo.
 
 ## 3. Implementar el cambio incremental
 
