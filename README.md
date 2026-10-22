@@ -1,4 +1,4 @@
-# Workshop Auth Backend — Java Quarkus
+# Workshop Auth Backend — Java Quarkusx
 
 > **Laboratorio intencionalmente vulnerable.** Ejecutar únicamente en local, repositorios privados y ambientes aislados. No desplegar en Internet, CERT o PROD.
 
